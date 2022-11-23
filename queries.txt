@@ -1,0 +1,58 @@
+/* Query used in the first insight */
+
+Select f.title as film_title, c.name as category_name, count(r.*) as count_of_rentals
+from category c
+join film_category fc on c.category_id = fc.category_id
+join film f on fc.film_id = f.film_id
+join inventory i on f.film_id = i.film_id
+join rental r on i.inventory_id = r.inventory_id
+where c.name in ('Animation','Children','Classics','Comedy','Family','Music')
+group by 1,2
+order by 3 DESC
+
+/* Query used in the second isnight */
+
+with sub_1 as (
+Select Distinct
+f.title as film_title, c.name as category_name, f.rental_duration as duration
+from category c
+join film_category fc on c.category_id = fc.category_id
+join film f on fc.film_id = f.film_id
+join inventory i on f.film_id = i.film_id
+join rental r on i.inventory_id = r.inventory_id)
+
+select sub_1.film_title, sub_1.category_name, sub_1.duration,
+Ntile(4) over(order by sub_1.duration) as quartile
+from sub_1
+where sub_1.category_name in ('Animation','Children','Classics','Comedy','Family','Music')
+
+/* Query used in third insight */
+
+with sub_1 as (
+Select Distinct
+f.title as film_title, c.name as category_name, f.rental_duration as duration
+from category c
+join film_category fc on c.category_id = fc.category_id
+join film f on fc.film_id = f.film_id
+join inventory i on f.film_id = i.film_id
+join rental r on i.inventory_id = r.inventory_id),
+
+sub_2 as (
+select sub_1.film_title, sub_1.category_name, sub_1.duration,
+Ntile(4) over(order by sub_1.duration) as quartile
+from sub_1
+where sub_1.category_name in ('Animation','Children','Classics','Comedy','Family','Music'))
+
+select sub_2.category_name, sub_2.quartile, count(*)
+from sub_2
+group by 1,2
+order by 1,2
+
+/* Query used in forth insight */
+
+select date_part('month',r.rental_date) as rental_month, date_part('year',r.rental_date) as rental_year, sr.store_id, count(*) as count_rentals
+from rental r
+join payment p on r.rental_id = p.rental_id
+join staff sf on p.staff_id = sf.staff_id
+join store sr on sf.store_id = sr.store_id
+group by 1,2,3
